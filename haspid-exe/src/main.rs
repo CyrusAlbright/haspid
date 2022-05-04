@@ -2,20 +2,16 @@ mod process_list;
 
 use process_list::ProcessList;
 
-use u16cstr::u16cstr;
 use widestring::{U16CStr, U16CString};
-use windows::{
-	core::{PCSTR, PCWSTR},
-	Win32::{
-		Foundation::GetLastError,
-		System::{
-			Diagnostics::Debug::WriteProcessMemory,
-			LibraryLoader::{GetModuleHandleW, GetProcAddress},
-			Memory::{VirtualAllocEx, MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE},
-			Threading::{
-				CreateRemoteThread, OpenProcess, PROCESS_CREATE_THREAD, PROCESS_QUERY_INFORMATION,
-				PROCESS_VM_OPERATION, PROCESS_VM_READ, PROCESS_VM_WRITE,
-			},
+use windows::Win32::{
+	Foundation::GetLastError,
+	System::{
+		Diagnostics::Debug::WriteProcessMemory,
+		LibraryLoader::{GetModuleHandleW, GetProcAddress},
+		Memory::{VirtualAllocEx, MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE},
+		Threading::{
+			CreateRemoteThread, OpenProcess, PROCESS_CREATE_THREAD, PROCESS_QUERY_INFORMATION,
+			PROCESS_VM_OPERATION, PROCESS_VM_READ, PROCESS_VM_WRITE,
 		},
 	},
 };
@@ -71,9 +67,9 @@ fn main() -> anyhow::Result<()> {
 	.ok()?;
 	assert!(written > 0);
 
-	let kernel32 = unsafe { GetModuleHandleW(PCWSTR(u16cstr!("kernel32.dll").as_ptr())) };
+	let kernel32 = unsafe { GetModuleHandleW("kernel32.dll")? };
 
-	let load_library_w = unsafe { GetProcAddress(kernel32, PCSTR("LoadLibraryW\0".as_ptr())) }
+	let load_library_w = unsafe { GetProcAddress(kernel32, "LoadLibraryW") }
 		.ok_or_else(|| anyhow::anyhow!("Couldn't find LoadLibraryW"))?;
 
 	let mut tid = 0u32;

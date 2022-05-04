@@ -6,7 +6,7 @@ default-run = "haspid-exe"
 
 [dependencies]
 widestring = "0.5"
-windows = { version = "0.35", features = [
+windows = { version = "0.36", features = [
 	"alloc",
     "Data_Xml_Dom",
     "Win32_Foundation",
@@ -19,3 +19,4 @@ windows = { version = "0.35", features = [
 ] }
 anyhow = "1.0"
 u16cstr = "0.3"
+haspid-lib = { path = "../haspid-lib" }
