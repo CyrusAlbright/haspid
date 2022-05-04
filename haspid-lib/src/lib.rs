@@ -1,10 +1,13 @@
+#![feature(once_cell)]
+
 pub mod artifact;
 
 use axum::{routing::get, Router};
 
-// NOTE: This magic number changes between versions. If this crashes or does nothing, this is probably the cause
-const HEROES_LIST_ADDRESS: u32 = 0x55f413b8;
-const HEROES_AMOUNT: usize = 170;
+use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+
+use std::lazy::SyncOnceCell;
+
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -70,9 +73,9 @@ impl From<HeroDataRaw> for HeroData {
 	}
 }
 
-fn get_all_heroes() -> [HeroData; HEROES_AMOUNT] {
+fn _get_all_heroes() -> [HeroData; HEROES_AMOUNT] {
 	let heroes_list_base =
-		unsafe { (HEROES_LIST_ADDRESS as *const *const HeroDataRaw).read_volatile() };
+		unsafe { (*HEROES_LIST_ADDRESS.get().unwrap() as *const *const HeroDataRaw).read_volatile() };
 
 	let heroes_list_raw: &'static [HeroDataRaw; HEROES_AMOUNT] =
 		unsafe { std::mem::transmute(heroes_list_base) };
@@ -82,7 +85,7 @@ fn get_all_heroes() -> [HeroData; HEROES_AMOUNT] {
 
 fn get_active_heroes() -> Vec<HeroData> {
 	let heroes_list_base =
-		unsafe { (HEROES_LIST_ADDRESS as *const *const HeroDataRaw).read_volatile() };
+		unsafe { (*HEROES_LIST_ADDRESS.get().unwrap() as *const *const HeroDataRaw).read_volatile() };
 
 	let heroes_list_raw: &'static [HeroDataRaw; HEROES_AMOUNT] =
 		unsafe { std::mem::transmute(heroes_list_base) };
@@ -98,8 +101,16 @@ fn get_active_heroes() -> Vec<HeroData> {
 	list
 }
 
+static HEROES_LIST_ADDRESS: SyncOnceCell<isize> = SyncOnceCell::new();
+const HEROES_AMOUNT: usize = 170;
+
 #[ctor::ctor]
 fn ctor() {
+	HEROES_LIST_ADDRESS.set({
+		let base = unsafe { GetModuleHandleW("hota.dll") }.unwrap().0;
+		base + 0x1913b8isize
+	}).unwrap();
+
 	std::thread::spawn(move || {
 		tokio::runtime::Builder::new_current_thread()
 			.enable_all()
